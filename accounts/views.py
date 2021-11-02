@@ -1,5 +1,5 @@
 from django.shortcuts import redirect, render
-from django.http import HttpResponse
+from django.forms import inlineformset_factory
 
 from .models import *
 from .form import *
@@ -29,15 +29,20 @@ def customer(request, pk):
     context = {'customer':customer, 'orders':orders, 'total_order':total_order}
     return render(request, 'accounts/customer.html', context)
 
-def createOrder(request):
-    form = OrderForm()
+def createOrder(request, cpk):
+    OrderFormSet = inlineformset_factory(Customer,Order,fields=('product','status'), extra=6)       #extra=6 show 6 form sets
+    customer = Customer.objects.get(id=cpk)
+    customerInitial = {'customer':customer}
+    #form = OrderForm(initial=customerInitial)
+    formset = OrderFormSet(queryset=Order.objects.none(), instance=customer)                        #queryset=Order.objects.none() doesn't show previous orders.
     if request.method == 'POST':
-        form = OrderForm(request.POST)
-        if form.is_valid():
-            form.save()
+        #form = OrderForm(request.POST)
+        formset = OrderFormSet(request.POST, instance=customer)
+        if formset.is_valid():
+            formset.save()
             return redirect('home')
 
-    context = {'form':form}
+    context = {'formset':formset}
     return render(request, 'accounts/order-form.html', context)
 
 def updateOrder(request, pk):
